@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { computeDashboard, normalizeSource } from "@/lib/compute-dashboard";
+import { computeDashboard, prepareSourceForSave } from "@/lib/compute-dashboard";
 import {
   readDashboardSource,
   writeDashboardSource,
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const source = await readDashboardSource();
   const data = computeDashboard(source);
-  return NextResponse.json({ source, data });
+  return NextResponse.json({ source, data, notices: data.forecastNotices });
 }
 
 export async function PATCH(request: Request) {
@@ -30,7 +30,7 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const source = normalizeSource(body);
+  const { source, notices } = prepareSourceForSave(body);
   const result = await writeDashboardSource(source);
 
   if (!result.ok) {
@@ -38,5 +38,5 @@ export async function PATCH(request: Request) {
   }
 
   const data = computeDashboard(source);
-  return NextResponse.json({ source, data });
+  return NextResponse.json({ source, data, notices });
 }

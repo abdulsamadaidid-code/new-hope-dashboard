@@ -8,8 +8,9 @@ https://new-hope-dashboard-nine.vercel.app
 
 ## How data works
 
-- **Read:** dashboard loads from Edge Config on each request
-- **Write:** use **Edit data** in the dashboard UI — saves via the Vercel REST API
+- **Read:** dashboard loads from Edge Config and runs the forecasting engine on each request
+- **Write:** use **Edit data** — saves via the Vercel REST API and recalculates all non-pinned future months
+- **Forecast engine:** rule-based formulas in `src/lib/forecast.ts` (no ML). Actuals, auto forecasts, and pinned overrides are tagged and shown in the UI
 - **No auth:** keep the URL private within your team
 
 ## Environment variables

@@ -1,8 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { SourceBadge } from "@/components/source-badge";
 import { formatCurrency } from "@/lib/format";
-import type { DashboardSource, ForecastMonth } from "@/lib/types";
+import { createMonthValue } from "@/lib/forecast";
+import type {
+  DashboardSource,
+  ExpenseCategory,
+  ForecastMonthStored,
+} from "@/lib/types";
 
 const admissionsRows = [
   { key: "inquiries", label: "Inquiries" },
@@ -12,21 +18,26 @@ const admissionsRows = [
   { key: "studentsEnrolled", label: "Students Enrolled" },
 ] as const;
 
+type MetricField = "students" | "tuitionRevenue" | "totalExpenses";
+
 function NumberInput({
   value,
   onChange,
+  disabled = false,
   className = "",
 }: {
   value: number;
   onChange: (value: number) => void;
+  disabled?: boolean;
   className?: string;
 }) {
   return (
     <input
       type="number"
+      disabled={disabled}
       value={Number.isFinite(value) ? value : 0}
       onChange={(event) => onChange(Number(event.target.value) || 0)}
-      className={`w-full rounded border border-slate-300 px-2 py-1 text-sm text-slate-900 ${className}`}
+      className={`w-full rounded border border-slate-300 px-2 py-1 text-sm text-slate-900 disabled:bg-slate-100 disabled:text-slate-500 ${className}`}
     />
   );
 }
@@ -42,6 +53,10 @@ export function DashboardEditor({
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<DashboardSource>(source);
+
+  useEffect(() => {
+    if (!open) setDraft(source);
+  }, [source, open]);
 
   const hasChanges = useMemo(
     () => JSON.stringify(draft) !== JSON.stringify(source),
@@ -78,16 +93,55 @@ export function DashboardEditor({
     }));
   }
 
-  function updateForecast(
+  function updateMonthMetric(
     index: number,
-    field: keyof Pick<ForecastMonth, "students" | "tuitionRevenue" | "totalExpenses">,
+    field: MetricField,
     value: number,
   ) {
+    setDraft((prev) => {
+      const month = prev.forecastMonths[index];
+      const isActual = index <= prev.currentMonthIndex;
+      const sourceTag = isActual ? "actual" : "manual_override";
+
+      if (!isActual && field === "tuitionRevenue") {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        forecastMonths: prev.forecastMonths.map((item, itemIndex) => {
+          if (itemIndex !== index) return item;
+          return {
+            ...item,
+            [field]: createMonthValue(
+              item.monthKey,
+              value,
+              sourceTag,
+              isActual
+                ? `Entered as ${field} for closed month`
+                : `Pinned ${field} override`,
+            ),
+          };
+        }),
+      };
+    });
+  }
+
+  function resetMonthMetric(index: number, field: MetricField) {
     setDraft((prev) => ({
       ...prev,
-      forecastMonths: prev.forecastMonths.map((month, monthIndex) =>
-        monthIndex === index ? { ...month, [field]: value } : month,
-      ),
+      forecastMonths: prev.forecastMonths.map((item, itemIndex) => {
+        if (itemIndex !== index) return item;
+        return {
+          ...item,
+          [field]: createMonthValue(
+            item.monthKey,
+            item[field].value,
+            "forecast",
+            "Reset to auto — will recalculate on save",
+          ),
+        };
+      }),
     }));
   }
 
@@ -104,9 +158,102 @@ export function DashboardEditor({
     }));
   }
 
+  function updateExpenseCategory(
+    index: number,
+    field: keyof Pick<ExpenseCategory, "amount" | "isFixed">,
+    value: number | boolean,
+  ) {
+    setDraft((prev) => ({
+      ...prev,
+      expenseCategories: prev.expenseCategories.map((category, categoryIndex) =>
+        categoryIndex === index
+          ? { ...category, [field]: value }
+          : category,
+      ),
+    }));
+  }
+
   async function handleSave() {
     await onSave(draft);
     setOpen(false);
+  }
+
+  function renderMonthRow(month: ForecastMonthStored, index: number) {
+    const isActual = index <= draft.currentMonthIndex;
+
+    return (
+      <tr key={month.monthKey} className={isActual ? "bg-slate-50/80" : ""}>
+        <td className="py-2 pr-2 text-slate-800">
+          <div className="font-medium">{month.label}</div>
+          <div className="text-xs text-slate-500">
+            {isActual ? "Closed month" : "Future month"}
+          </div>
+        </td>
+        <td className="py-2 pr-2">
+          <div className="flex items-center gap-2">
+            <NumberInput
+              value={month.students.value}
+              onChange={(value) => updateMonthMetric(index, "students", value)}
+            />
+            <SourceBadge
+              source={month.students.source}
+              explain={month.students.explain}
+            />
+            {!isActual && month.students.source === "manual_override" ? (
+              <button
+                type="button"
+                onClick={() => resetMonthMetric(index, "students")}
+                className="text-xs text-blue-700 hover:underline"
+              >
+                Reset to auto
+              </button>
+            ) : null}
+          </div>
+        </td>
+        <td className="py-2 pr-2">
+          <div className="flex items-center gap-2">
+            <NumberInput
+              value={month.tuitionRevenue.value}
+              disabled={!isActual}
+              onChange={(value) =>
+                updateMonthMetric(index, "tuitionRevenue", value)
+              }
+            />
+            <SourceBadge
+              source={isActual ? month.tuitionRevenue.source : "forecast"}
+              explain={
+                isActual
+                  ? month.tuitionRevenue.explain
+                  : "Derived from enrollment × tuition rate"
+              }
+            />
+          </div>
+        </td>
+        <td className="py-2">
+          <div className="flex items-center gap-2">
+            <NumberInput
+              value={month.totalExpenses.value}
+              onChange={(value) =>
+                updateMonthMetric(index, "totalExpenses", value)
+              }
+            />
+            <SourceBadge
+              source={month.totalExpenses.source}
+              explain={month.totalExpenses.explain}
+            />
+            {!isActual && month.totalExpenses.source === "manual_override" ? (
+              <button
+                type="button"
+                onClick={() => resetMonthMetric(index, "totalExpenses")}
+                className="text-xs text-blue-700 hover:underline"
+              >
+                Reset to auto
+              </button>
+            ) : null}
+          </div>
+        </td>
+      </tr>
+    );
   }
 
   return (
@@ -118,7 +265,7 @@ export function DashboardEditor({
               Update dashboard data
             </h2>
             <p className="text-xs text-slate-600">
-              Edits save to Vercel Edge Config and appear immediately — no rebuild.
+              Closed months save as actuals. Future months auto-forecast unless you pin a value.
             </p>
           </div>
           <button
@@ -207,7 +354,7 @@ export function DashboardEditor({
 
             <div className="rounded-md border border-slate-200 bg-white p-3">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-                Assumptions
+                Assumptions & expense categories
               </h3>
               <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <label className="text-sm text-slate-700">
@@ -247,6 +394,50 @@ export function DashboardEditor({
                   />
                 </label>
               </div>
+
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full min-w-[520px] text-sm">
+                  <thead>
+                    <tr className="text-left text-slate-500">
+                      <th className="pb-2">Expense</th>
+                      <th className="pb-2">Type</th>
+                      <th className="pb-2">Monthly amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {draft.expenseCategories.map((category, index) => (
+                      <tr key={category.id}>
+                        <td className="py-1 pr-2 text-slate-800">{category.name}</td>
+                        <td className="py-1 pr-2">
+                          <select
+                            value={category.isFixed ? "fixed" : "variable"}
+                            onChange={(event) =>
+                              updateExpenseCategory(
+                                index,
+                                "isFixed",
+                                event.target.value === "fixed",
+                              )
+                            }
+                            className="w-full rounded border border-slate-300 px-2 py-1 text-sm"
+                          >
+                            <option value="fixed">Fixed</option>
+                            <option value="variable">Variable</option>
+                          </select>
+                        </td>
+                        <td className="py-1">
+                          <NumberInput
+                            value={category.amount}
+                            onChange={(value) =>
+                              updateExpenseCategory(index, "amount", value)
+                            }
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
               <label className="mt-3 block text-sm text-slate-700">
                 Current reporting month
                 <select
@@ -260,7 +451,7 @@ export function DashboardEditor({
                   className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
                 >
                   {draft.forecastMonths.map((month, index) => (
-                    <option key={month.monthOffset} value={index}>
+                    <option key={month.monthKey} value={index}>
                       {month.label}
                     </option>
                   ))}
@@ -270,10 +461,13 @@ export function DashboardEditor({
 
             <div className="rounded-md border border-slate-200 bg-white p-3">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-                12-month forecast
+                Monthly actuals & forecast
               </h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Future tuition is always calculated from enrollment. Pin students or expenses to override the engine.
+              </p>
               <div className="mt-2 overflow-x-auto">
-                <table className="w-full min-w-[720px] text-sm">
+                <table className="w-full min-w-[860px] text-sm">
                   <thead>
                     <tr className="text-left text-slate-500">
                       <th className="pb-2">Month</th>
@@ -283,35 +477,9 @@ export function DashboardEditor({
                     </tr>
                   </thead>
                   <tbody>
-                    {draft.forecastMonths.map((month, index) => (
-                      <tr key={month.monthOffset}>
-                        <td className="py-1 pr-2 text-slate-800">{month.label}</td>
-                        <td className="py-1 pr-2">
-                          <NumberInput
-                            value={month.students}
-                            onChange={(value) =>
-                              updateForecast(index, "students", value)
-                            }
-                          />
-                        </td>
-                        <td className="py-1 pr-2">
-                          <NumberInput
-                            value={month.tuitionRevenue}
-                            onChange={(value) =>
-                              updateForecast(index, "tuitionRevenue", value)
-                            }
-                          />
-                        </td>
-                        <td className="py-1">
-                          <NumberInput
-                            value={month.totalExpenses}
-                            onChange={(value) =>
-                              updateForecast(index, "totalExpenses", value)
-                            }
-                          />
-                        </td>
-                      </tr>
-                    ))}
+                    {draft.forecastMonths.map((month, index) =>
+                      renderMonthRow(month, index),
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -324,7 +492,7 @@ export function DashboardEditor({
                 onClick={handleSave}
                 className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {saving ? "Saving…" : "Save changes"}
+                {saving ? "Saving…" : "Save & recalculate forecast"}
               </button>
               <button
                 type="button"
@@ -337,7 +505,8 @@ export function DashboardEditor({
               <p className="text-xs text-slate-500">
                 Current month expenses:{" "}
                 {formatCurrency(
-                  draft.forecastMonths[draft.currentMonthIndex]?.totalExpenses ?? 0,
+                  draft.forecastMonths[draft.currentMonthIndex]?.totalExpenses
+                    .value ?? 0,
                 )}
               </p>
             </div>

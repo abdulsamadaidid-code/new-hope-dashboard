@@ -1,7 +1,7 @@
 import { get } from "@vercel/edge-config";
-import { computeDashboard, normalizeSource } from "./compute-dashboard";
+import { normalizeSource } from "./compute-dashboard";
 import { createDefaultSource } from "./default-source";
-import type { DashboardData, DashboardSource } from "./types";
+import type { DashboardSource } from "./types";
 import { EDGE_CONFIG_KEY } from "./types";
 
 export async function readDashboardSource(): Promise<DashboardSource> {
@@ -15,11 +15,6 @@ export async function readDashboardSource(): Promise<DashboardSource> {
   }
 
   return normalizeSource(stored);
-}
-
-export async function readDashboard(): Promise<DashboardData> {
-  const source = await readDashboardSource();
-  return computeDashboard(source);
 }
 
 interface WriteEnv {
@@ -49,10 +44,7 @@ export async function writeDashboardSource(
     };
   }
 
-  const payload = normalizeSource({
-    ...source,
-    updatedAt: new Date().toISOString(),
-  });
+  const payload = source;
 
   const url = new URL(
     `https://api.vercel.com/v1/edge-config/${env.edgeConfigId}/items`,

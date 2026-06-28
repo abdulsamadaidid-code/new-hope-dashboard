@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ValueCell } from "@/components/source-badge";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import type { DashboardData } from "@/lib/types";
 
@@ -22,9 +23,9 @@ export function ForecastSection({
 }) {
   const chartData = forecast.months.map((month) => ({
     label: month.label,
-    students: month.students,
-    netCashFlow: month.netCashFlow,
+    students: month.students.value,
     isActual: month.isActual,
+    source: month.students.source,
   }));
 
   const actualData = chartData.filter((point) => point.isActual);
@@ -42,13 +43,13 @@ export function ForecastSection({
           Upcoming Months Forecast
         </h2>
         <p className="text-xs text-slate-500">
-          Solid = actual · Dashed = projected
+          Solid = actual · Dashed = auto forecast · 📌 = pinned override
         </p>
       </div>
 
       <div className="mt-3 grid gap-4 xl:grid-cols-[1.3fr_1fr]">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-left text-slate-500">
                 <th className="pb-2 font-medium">Month</th>
@@ -56,7 +57,7 @@ export function ForecastSection({
                 <th className="pb-2 font-medium">Tuition</th>
                 <th className="pb-2 font-medium">Expenses</th>
                 <th className="pb-2 font-medium">Net Cash Flow</th>
-                <th className="pb-2 font-medium">Type</th>
+                <th className="pb-2 font-medium">Cash Balance</th>
               </tr>
             </thead>
             <tbody>
@@ -64,26 +65,39 @@ export function ForecastSection({
                 <tr
                   key={month.monthOffset}
                   className={`border-b border-slate-100 ${
-                    month.monthOffset === currentMonthIndex
-                      ? "bg-blue-50"
-                      : ""
+                    month.monthOffset === currentMonthIndex ? "bg-blue-50" : ""
                   }`}
                 >
                   <td className="py-2 font-medium text-slate-800">{month.label}</td>
-                  <td className="py-2 text-slate-700">
-                    {formatNumber(month.students)}
+                  <td className="py-2">
+                    <ValueCell
+                      value={month.students.value}
+                      source={month.students.source}
+                      explain={month.students.explain}
+                      formatted={formatNumber(month.students.value)}
+                    />
                   </td>
-                  <td className="py-2 text-slate-700">
-                    {formatCurrency(month.tuitionRevenue)}
+                  <td className="py-2">
+                    <ValueCell
+                      value={month.tuitionRevenue.value}
+                      source={month.tuitionRevenue.source}
+                      explain={month.tuitionRevenue.explain}
+                      formatted={formatCurrency(month.tuitionRevenue.value)}
+                    />
                   </td>
-                  <td className="py-2 text-slate-700">
-                    {formatCurrency(month.totalExpenses)}
+                  <td className="py-2">
+                    <ValueCell
+                      value={month.totalExpenses.value}
+                      source={month.totalExpenses.source}
+                      explain={month.totalExpenses.explain}
+                      formatted={formatCurrency(month.totalExpenses.value)}
+                    />
                   </td>
                   <td className="py-2 text-slate-700">
                     {formatCurrency(month.netCashFlow)}
                   </td>
-                  <td className="py-2 text-slate-600">
-                    {month.isActual ? "Actual" : "Forecast"}
+                  <td className="py-2 text-slate-700">
+                    {formatCurrency(month.cashBalance)}
                   </td>
                 </tr>
               ))}

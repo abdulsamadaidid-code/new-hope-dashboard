@@ -9,7 +9,7 @@ import { FinancialSection } from "@/components/financial-section";
 import { ForecastSection } from "@/components/forecast-section";
 import { KpiCards } from "@/components/kpi-cards";
 import { formatGeneratedAt } from "@/lib/format";
-import type { DashboardData, DashboardSource } from "@/lib/types";
+import type { DashboardData, DashboardSource, ForecastNotice } from "@/lib/types";
 
 export function DashboardShell({
   initialSource,
@@ -20,6 +20,9 @@ export function DashboardShell({
 }) {
   const [source, setSource] = useState(initialSource);
   const [data, setData] = useState(initialData);
+  const [notices, setNotices] = useState<ForecastNotice[]>(
+    initialData.forecastNotices,
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,6 +40,7 @@ export function DashboardShell({
       const payload = (await response.json()) as {
         source?: DashboardSource;
         data?: DashboardData;
+        notices?: ForecastNotice[];
         error?: string;
       };
 
@@ -46,6 +50,7 @@ export function DashboardShell({
 
       setSource(payload.source);
       setData(payload.data);
+      setNotices(payload.notices ?? payload.data.forecastNotices ?? []);
     } catch (saveError) {
       setError(
         saveError instanceof Error
@@ -70,6 +75,25 @@ export function DashboardShell({
 
       <div className="space-y-4 print:space-y-3">
         <DashboardEditor source={source} onSave={handleSave} saving={saving} />
+
+        {notices.length > 0 ? (
+          <div className="space-y-2 print:hidden">
+            {notices.map((notice) => (
+              <p
+                key={notice.message}
+                className={`rounded-md border px-3 py-2 text-sm ${
+                  notice.type === "cold_start"
+                    ? "border-amber-200 bg-amber-50 text-amber-900"
+                    : notice.type === "override_skipped"
+                      ? "border-blue-200 bg-blue-50 text-blue-900"
+                      : "border-slate-200 bg-slate-50 text-slate-700"
+                }`}
+              >
+                {notice.message}
+              </p>
+            ))}
+          </div>
+        ) : null}
 
         {error ? (
           <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 print:hidden">
