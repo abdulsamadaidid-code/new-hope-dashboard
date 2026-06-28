@@ -1,0 +1,151 @@
+{
+  "generatedAt": "2026-06-28T17:40:10.555Z",
+  "currentMonth": {
+    "index": 0,
+    "label": "Month 1",
+    "startMonth": "2026-06-30T20:59:44.000Z"
+  },
+  "kpis": {
+    "totalStudents": 13,
+    "tuitionRevenue": 926.25,
+    "totalExpenses": 0,
+    "netCashFlow": 3926.25,
+    "cashBalance": 3926.25
+  },
+  "enrollment": {
+    "byGrade": [
+      {
+        "grade": "KG1",
+        "current": 8,
+        "target": 18
+      },
+      {
+        "grade": "KG2",
+        "current": 0,
+        "target": 18
+      },
+      {
+        "grade": "Grade 1",
+        "current": 0,
+        "target": 18
+      },
+      {
+        "grade": "Grade 2",
+        "current": 0,
+        "target": 18
+      },
+      {
+        "grade": "Grade 3",
+        "current": 0,
+        "target": 18
+      },
+      {
+        "grade": "Grade 4",
+        "current": 0,
+        "target": 18
+      }
+    ],
+    "trend": [
+      {
+        "month": "M1",
+        "students": 13
+      },
+      {
+        "month": "M2",
+        "students": 19
+      },
+      {
+        "month": "M3",
+        "students": 26
+      },
+      {
+        "month": "M4",
+        "students": 34
+      },
+      {
+        "month": "M5",
+        "students": 42
+      },
+      {
+        "month": "M6",
+        "students": 50
+      },
+      {
+        "month": "M7",
+        "students": 57
+      },
+      {
+        "month": "M8",
+        "students": 64
+      },
+      {
+        "month": "M9",
+        "students": 70
+      },
+      {
+        "month": "M10",
+        "students": 75
+      },
+      {
+        "month": "M11",
+        "students": 80
+      },
+      {
+        "month": "M12",
+        "students": 85
+      }
+    ]
+  },
+  "financial": {
+    "totalMonthlyIncome": 3926.25,
+    "totalMonthlyExpenses": 0,
+    "netCashFlow": 3926.25,
+    "endingCashBalance": 3926.25,
+    "incomeVsExpenses": [
+      {
+        "name": "Income",
+        "value": 3926.25
+      },
+      {
+        "name": "Expenses",
+        "value": 0
+      }
+    ]
+  },
+  "admissions": {
+    "inquiries": {
+      "week": 0,
+      "month": 0
+    },
+    "schoolVisits": {
+      "week": 0,
+      "month": 0
+    },
+    "applications": {
+      "week": 0,
+      "month": 0
+    },
+    "studentsAdmitted": {
+      "week": 0,
+      "month": 0
+    },
+    "studentsEnrolled": {
+      "week": 0,
+      "month": 0
+    }
+  },
+  "assumptions": {
+    "averageTuition": 75,
+    "collectionRate": 0.95,
+    "monthlyOwnerFunding": 3000,
+    "totalMonthlySalaries": 0,
+    "breakEvenStudents": "Enter expense assumptions"
+  },
+  "actionItems": [
+    {
+      "status": "warning",
+      "label": "Enrollment below target",
+      "action": "Increase admissions and marketing efforts"
+    }
+  ]
+}
