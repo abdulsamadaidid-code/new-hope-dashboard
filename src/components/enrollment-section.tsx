@@ -2,6 +2,7 @@
 
 import {
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -17,6 +18,14 @@ export function EnrollmentSection({
 }: {
   enrollment: DashboardData["enrollment"];
 }) {
+  const actualData = enrollment.trend.filter((point) => point.isActual);
+  const upcomingData = enrollment.trend.filter((point) => !point.isActual);
+  const bridgePoint = actualData.at(-1);
+  const upcomingLine =
+    bridgePoint && upcomingData.length > 0
+      ? [bridgePoint, ...upcomingData]
+      : upcomingData;
+
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm print:shadow-none">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700">
@@ -47,16 +56,34 @@ export function EnrollmentSection({
         </table>
         <div className="h-44 print:h-36">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={enrollment.trend}>
+            <LineChart>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} width={28} />
+              <XAxis
+                dataKey="month"
+                allowDuplicatedCategory={false}
+                tick={{ fontSize: 10 }}
+                interval="preserveStartEnd"
+              />
+              <YAxis tick={{ fontSize: 10 }} width={28} />
               <Tooltip />
+              <Legend />
               <Line
+                name="Actual"
+                data={actualData}
                 type="monotone"
                 dataKey="students"
                 stroke="#1d4ed8"
                 strokeWidth={2}
+                dot={false}
+              />
+              <Line
+                name="Forecast"
+                data={upcomingLine}
+                type="monotone"
+                dataKey="students"
+                stroke="#64748b"
+                strokeWidth={2}
+                strokeDasharray="6 4"
                 dot={false}
               />
             </LineChart>

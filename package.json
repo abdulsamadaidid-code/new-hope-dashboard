@@ -3,20 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "import-data": "node scripts/import-dashboard.mjs",
-    "predev": "npm run import-data",
-    "prebuild": "npm run import-data",
+    "seed-edge-config": "node scripts/seed-edge-config.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@vercel/edge-config": "^1.4.3",
     "next": "16.2.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "recharts": "^3.9.0",
-    "xlsx": "^0.18.5"
+    "recharts": "^3.9.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
