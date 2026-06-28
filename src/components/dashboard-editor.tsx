@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SourceBadge } from "@/components/source-badge";
+import { copy } from "@/lib/copy";
 import { formatCurrency } from "@/lib/format";
 import { createMonthValue } from "@/lib/forecast";
 import type {
@@ -11,11 +12,11 @@ import type {
 } from "@/lib/types";
 
 const admissionsRows = [
-  { key: "inquiries", label: "Inquiries" },
-  { key: "schoolVisits", label: "School Visits" },
-  { key: "applications", label: "Applications" },
-  { key: "studentsAdmitted", label: "Students Admitted" },
-  { key: "studentsEnrolled", label: "Students Enrolled" },
+  { key: "inquiries", label: copy.admissions.inquiries },
+  { key: "schoolVisits", label: copy.admissions.schoolVisits },
+  { key: "applications", label: copy.admissions.applications },
+  { key: "studentsAdmitted", label: copy.admissions.studentsAdmitted },
+  { key: "studentsEnrolled", label: copy.admissions.studentsEnrolled },
 ] as const;
 
 type MetricField = "students" | "tuitionRevenue" | "totalExpenses";
@@ -37,8 +38,26 @@ function NumberInput({
       disabled={disabled}
       value={Number.isFinite(value) ? value : 0}
       onChange={(event) => onChange(Number(event.target.value) || 0)}
-      className={`w-full rounded border border-slate-300 px-2 py-1 text-sm text-slate-900 disabled:bg-slate-100 disabled:text-slate-500 ${className}`}
+      className={`w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100 disabled:text-slate-500 ${className}`}
     />
+  );
+}
+
+function EditorSection({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+      {hint ? <p className="mt-1 text-sm text-slate-500">{hint}</p> : null}
+      <div className="mt-3">{children}</div>
+    </div>
   );
 }
 
@@ -93,19 +112,20 @@ export function DashboardEditor({
     }));
   }
 
-  function updateMonthMetric(
-    index: number,
-    field: MetricField,
-    value: number,
-  ) {
+  function updateMonthMetric(index: number, field: MetricField, value: number) {
     setDraft((prev) => {
-      const month = prev.forecastMonths[index];
       const isActual = index <= prev.currentMonthIndex;
       const sourceTag = isActual ? "actual" : "manual_override";
 
       if (!isActual && field === "tuitionRevenue") {
         return prev;
       }
+
+      const fieldLabels = {
+        students: copy.editor.fields.students,
+        tuitionRevenue: copy.editor.fields.tuition,
+        totalExpenses: copy.editor.fields.expenses,
+      };
 
       return {
         ...prev,
@@ -118,8 +138,8 @@ export function DashboardEditor({
               value,
               sourceTag,
               isActual
-                ? `Entered as ${field} for closed month`
-                : `Pinned ${field} override`,
+                ? `You entered ${fieldLabels[field]} for this completed month.`
+                : `You chose this ${fieldLabels[field].toLowerCase()} for an upcoming month.`,
             ),
           };
         }),
@@ -138,7 +158,7 @@ export function DashboardEditor({
             item.monthKey,
             item[field].value,
             "forecast",
-            "Reset to auto — will recalculate on save",
+            "Will use the automatic estimate when you save.",
           ),
         };
       }),
@@ -183,35 +203,39 @@ export function DashboardEditor({
 
     return (
       <tr key={month.monthKey} className={isActual ? "bg-slate-50/80" : ""}>
-        <td className="py-2 pr-2 text-slate-800">
+        <td className="py-2.5 pr-3 text-slate-800">
           <div className="font-medium">{month.label}</div>
           <div className="text-xs text-slate-500">
-            {isActual ? "Closed month" : "Future month"}
+            {isActual
+              ? copy.editor.fields.recordedMonth
+              : copy.editor.fields.upcomingMonth}
           </div>
         </td>
-        <td className="py-2 pr-2">
-          <div className="flex items-center gap-2">
+        <td className="py-2.5 pr-3">
+          <div className="space-y-1.5">
             <NumberInput
               value={month.students.value}
               onChange={(value) => updateMonthMetric(index, "students", value)}
             />
-            <SourceBadge
-              source={month.students.source}
-              explain={month.students.explain}
-            />
-            {!isActual && month.students.source === "manual_override" ? (
-              <button
-                type="button"
-                onClick={() => resetMonthMetric(index, "students")}
-                className="text-xs text-blue-700 hover:underline"
-              >
-                Reset to auto
-              </button>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              <SourceBadge
+                source={month.students.source}
+                explain={month.students.explain}
+              />
+              {!isActual && month.students.source === "manual_override" ? (
+                <button
+                  type="button"
+                  onClick={() => resetMonthMetric(index, "students")}
+                  className="text-xs font-medium text-blue-700 hover:underline"
+                >
+                  {copy.editor.useAuto}
+                </button>
+              ) : null}
+            </div>
           </div>
         </td>
-        <td className="py-2 pr-2">
-          <div className="flex items-center gap-2">
+        <td className="py-2.5 pr-3">
+          <div className="space-y-1.5">
             <NumberInput
               value={month.tuitionRevenue.value}
               disabled={!isActual}
@@ -224,32 +248,34 @@ export function DashboardEditor({
               explain={
                 isActual
                   ? month.tuitionRevenue.explain
-                  : "Derived from enrollment × tuition rate"
+                  : copy.editor.fields.tuitionAuto
               }
             />
           </div>
         </td>
-        <td className="py-2">
-          <div className="flex items-center gap-2">
+        <td className="py-2.5">
+          <div className="space-y-1.5">
             <NumberInput
               value={month.totalExpenses.value}
               onChange={(value) =>
                 updateMonthMetric(index, "totalExpenses", value)
               }
             />
-            <SourceBadge
-              source={month.totalExpenses.source}
-              explain={month.totalExpenses.explain}
-            />
-            {!isActual && month.totalExpenses.source === "manual_override" ? (
-              <button
-                type="button"
-                onClick={() => resetMonthMetric(index, "totalExpenses")}
-                className="text-xs text-blue-700 hover:underline"
-              >
-                Reset to auto
-              </button>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              <SourceBadge
+                source={month.totalExpenses.source}
+                explain={month.totalExpenses.explain}
+              />
+              {!isActual && month.totalExpenses.source === "manual_override" ? (
+                <button
+                  type="button"
+                  onClick={() => resetMonthMetric(index, "totalExpenses")}
+                  className="text-xs font-medium text-blue-700 hover:underline"
+                >
+                  {copy.editor.useAuto}
+                </button>
+              ) : null}
+            </div>
           </div>
         </td>
       </tr>
@@ -258,14 +284,14 @@ export function DashboardEditor({
 
   return (
     <section className="print:hidden">
-      <div className="rounded-lg border border-blue-200 bg-blue-50/70 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">
-              Update dashboard data
+            <h2 className="text-base font-semibold text-slate-900">
+              {copy.editor.title}
             </h2>
-            <p className="text-xs text-slate-600">
-              Closed months save as actuals. Future months auto-forecast unless you pin a value.
+            <p className="mt-1 max-w-xl text-sm text-slate-600">
+              {copy.editor.intro}
             </p>
           </div>
           <button
@@ -274,38 +300,38 @@ export function DashboardEditor({
               setDraft(source);
               setOpen((value) => !value);
             }}
-            className="rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
+            className="rounded-lg bg-blue-700 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-800"
           >
-            {open ? "Close editor" : "Edit data"}
+            {open ? copy.editor.close : copy.editor.open}
           </button>
         </div>
 
         {open ? (
-          <div className="mt-4 space-y-5">
+          <div className="mt-5 space-y-4">
             <div className="grid gap-4 lg:grid-cols-2">
-              <div className="rounded-md border border-slate-200 bg-white p-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Enrollment by grade
-                </h3>
-                <table className="mt-2 w-full text-sm">
+              <EditorSection
+                title={copy.editor.sections.enrollment}
+                hint={copy.editor.sections.enrollmentHint}
+              >
+                <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-slate-500">
                       <th className="pb-2">Grade</th>
-                      <th className="pb-2">Current</th>
-                      <th className="pb-2">Target</th>
+                      <th className="pb-2">{copy.editor.fields.current}</th>
+                      <th className="pb-2">{copy.editor.fields.target}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {draft.enrollmentByGrade.map((grade, index) => (
                       <tr key={grade.grade}>
-                        <td className="py-1 pr-2 text-slate-800">{grade.grade}</td>
-                        <td className="py-1 pr-2">
+                        <td className="py-2 pr-2 text-slate-800">{grade.grade}</td>
+                        <td className="py-2 pr-2">
                           <NumberInput
                             value={grade.current}
                             onChange={(value) => updateGrade(index, "current", value)}
                           />
                         </td>
-                        <td className="py-1">
+                        <td className="py-2">
                           <NumberInput
                             value={grade.target}
                             onChange={(value) => updateGrade(index, "target", value)}
@@ -315,31 +341,31 @@ export function DashboardEditor({
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </EditorSection>
 
-              <div className="rounded-md border border-slate-200 bg-white p-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Admissions counts
-                </h3>
-                <table className="mt-2 w-full text-sm">
+              <EditorSection
+                title={copy.editor.sections.admissions}
+                hint={copy.editor.sections.admissionsHint}
+              >
+                <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-slate-500">
-                      <th className="pb-2">Metric</th>
-                      <th className="pb-2">This week</th>
-                      <th className="pb-2">This month</th>
+                      <th className="pb-2">Stage</th>
+                      <th className="pb-2">{copy.editor.fields.thisWeek}</th>
+                      <th className="pb-2">{copy.editor.fields.thisMonth}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {admissionsRows.map(({ key, label }) => (
                       <tr key={key}>
-                        <td className="py-1 pr-2 text-slate-800">{label}</td>
-                        <td className="py-1 pr-2">
+                        <td className="py-2 pr-2 text-slate-800">{label}</td>
+                        <td className="py-2 pr-2">
                           <NumberInput
                             value={draft.admissions[key].week}
                             onChange={(value) => updateAdmission(key, "week", value)}
                           />
                         </td>
-                        <td className="py-1">
+                        <td className="py-2">
                           <NumberInput
                             value={draft.admissions[key].month}
                             onChange={(value) => updateAdmission(key, "month", value)}
@@ -349,34 +375,34 @@ export function DashboardEditor({
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </EditorSection>
             </div>
 
-            <div className="rounded-md border border-slate-200 bg-white p-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-                Assumptions & expense categories
-              </h3>
-              <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <EditorSection
+              title={copy.editor.sections.settings}
+              hint={copy.editor.sections.settingsHint}
+            >
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <label className="text-sm text-slate-700">
-                  Average tuition
+                  {copy.editor.fields.averageTuition}
                   <NumberInput
-                    className="mt-1"
+                    className="mt-1.5"
                     value={draft.assumptions.averageTuition}
                     onChange={(value) => updateAssumption("averageTuition", value)}
                   />
                 </label>
                 <label className="text-sm text-slate-700">
-                  Collection rate
+                  {copy.editor.fields.collectionRate}
                   <NumberInput
-                    className="mt-1"
+                    className="mt-1.5"
                     value={draft.assumptions.collectionRate}
                     onChange={(value) => updateAssumption("collectionRate", value)}
                   />
                 </label>
                 <label className="text-sm text-slate-700">
-                  Owner funding / month
+                  {copy.editor.fields.ownerFunding}
                   <NumberInput
-                    className="mt-1"
+                    className="mt-1.5"
                     value={draft.assumptions.monthlyOwnerFunding}
                     onChange={(value) =>
                       updateAssumption("monthlyOwnerFunding", value)
@@ -384,9 +410,9 @@ export function DashboardEditor({
                   />
                 </label>
                 <label className="text-sm text-slate-700">
-                  Monthly salaries
+                  {copy.editor.fields.salaries}
                   <NumberInput
-                    className="mt-1"
+                    className="mt-1.5"
                     value={draft.assumptions.totalMonthlySalaries}
                     onChange={(value) =>
                       updateAssumption("totalMonthlySalaries", value)
@@ -399,16 +425,16 @@ export function DashboardEditor({
                 <table className="w-full min-w-[520px] text-sm">
                   <thead>
                     <tr className="text-left text-slate-500">
-                      <th className="pb-2">Expense</th>
-                      <th className="pb-2">Type</th>
-                      <th className="pb-2">Monthly amount</th>
+                      <th className="pb-2">{copy.editor.fields.expenseName}</th>
+                      <th className="pb-2">{copy.editor.fields.expenseType}</th>
+                      <th className="pb-2">{copy.editor.fields.expenseAmount}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {draft.expenseCategories.map((category, index) => (
                       <tr key={category.id}>
-                        <td className="py-1 pr-2 text-slate-800">{category.name}</td>
-                        <td className="py-1 pr-2">
+                        <td className="py-2 pr-2 text-slate-800">{category.name}</td>
+                        <td className="py-2 pr-2">
                           <select
                             value={category.isFixed ? "fixed" : "variable"}
                             onChange={(event) =>
@@ -418,13 +444,15 @@ export function DashboardEditor({
                                 event.target.value === "fixed",
                               )
                             }
-                            className="w-full rounded border border-slate-300 px-2 py-1 text-sm"
+                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm"
                           >
-                            <option value="fixed">Fixed</option>
-                            <option value="variable">Variable</option>
+                            <option value="fixed">{copy.editor.fields.fixed}</option>
+                            <option value="variable">
+                              {copy.editor.fields.variable}
+                            </option>
                           </select>
                         </td>
-                        <td className="py-1">
+                        <td className="py-2">
                           <NumberInput
                             value={category.amount}
                             onChange={(value) =>
@@ -438,8 +466,8 @@ export function DashboardEditor({
                 </table>
               </div>
 
-              <label className="mt-3 block text-sm text-slate-700">
-                Current reporting month
+              <label className="mt-4 block text-sm text-slate-700">
+                {copy.editor.fields.reportingMonth}
                 <select
                   value={draft.currentMonthIndex}
                   onChange={(event) =>
@@ -448,7 +476,7 @@ export function DashboardEditor({
                       currentMonthIndex: Number(event.target.value),
                     }))
                   }
-                  className="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+                  className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm"
                 >
                   {draft.forecastMonths.map((month, index) => (
                     <option key={month.monthKey} value={index}>
@@ -457,23 +485,20 @@ export function DashboardEditor({
                   ))}
                 </select>
               </label>
-            </div>
+            </EditorSection>
 
-            <div className="rounded-md border border-slate-200 bg-white p-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-                Monthly actuals & forecast
-              </h3>
-              <p className="mt-1 text-xs text-slate-500">
-                Future tuition is always calculated from enrollment. Pin students or expenses to override the engine.
-              </p>
-              <div className="mt-2 overflow-x-auto">
+            <EditorSection
+              title={copy.editor.sections.monthly}
+              hint={copy.editor.sections.monthlyHint}
+            >
+              <div className="overflow-x-auto">
                 <table className="w-full min-w-[860px] text-sm">
                   <thead>
                     <tr className="text-left text-slate-500">
-                      <th className="pb-2">Month</th>
-                      <th className="pb-2">Students</th>
-                      <th className="pb-2">Tuition revenue</th>
-                      <th className="pb-2">Expenses</th>
+                      <th className="pb-2">{copy.forecastTable.month}</th>
+                      <th className="pb-2">{copy.editor.fields.students}</th>
+                      <th className="pb-2">{copy.editor.fields.tuition}</th>
+                      <th className="pb-2">{copy.editor.fields.expenses}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -483,30 +508,31 @@ export function DashboardEditor({
                   </tbody>
                 </table>
               </div>
-            </div>
+            </EditorSection>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
               <button
                 type="button"
                 disabled={saving || !hasChanges}
                 onClick={handleSave}
-                className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg bg-emerald-700 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {saving ? "Saving…" : "Save & recalculate forecast"}
+                {saving ? copy.editor.saving : copy.editor.save}
               </button>
               <button
                 type="button"
                 disabled={saving}
                 onClick={() => setDraft(source)}
-                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
-                Reset
+                {copy.editor.discard}
               </button>
-              <p className="text-xs text-slate-500">
-                Current month expenses:{" "}
-                {formatCurrency(
-                  draft.forecastMonths[draft.currentMonthIndex]?.totalExpenses
-                    .value ?? 0,
+              <p className="text-sm text-slate-500">
+                {copy.editor.footerExpenses(
+                  formatCurrency(
+                    draft.forecastMonths[draft.currentMonthIndex]?.totalExpenses
+                      .value ?? 0,
+                  ),
                 )}
               </p>
             </div>

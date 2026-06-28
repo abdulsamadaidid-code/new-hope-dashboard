@@ -173,7 +173,7 @@ function forecastExpenseTotal(
   const total = fixed + scaledVariable;
   return {
     total,
-    explain: `Fixed costs ($${fixed.toFixed(0)}) + variable costs scaled to ${forecastEnrollment} students ($${scaledVariable.toFixed(0)})`,
+    explain: `Fixed costs ($${fixed.toFixed(0)}) plus costs that scale with enrollment ($${scaledVariable.toFixed(0)})`,
   };
 }
 
@@ -184,7 +184,7 @@ function conservativeEnrollment(
   if (funnel <= 0) {
     return {
       value: Math.max(0, Math.round(smoothed)),
-      explain: `Smoothed enrollment trend: ${smoothed.toFixed(1)} new students/month`,
+      explain: `Based on recent growth: about ${smoothed.toFixed(0)} more students per month`,
     };
   }
 
@@ -198,13 +198,13 @@ function conservativeEnrollment(
     const value = Math.min(roundedSmoothed, roundedFunnel);
     return {
       value,
-      explain: `Conservative blend of trend (${roundedSmoothed}) and admissions funnel (${roundedFunnel})`,
+      explain: `Using the lower of trend (${roundedSmoothed}) and admissions pipeline (${roundedFunnel})`,
     };
   }
 
   return {
     value: roundedSmoothed,
-    explain: `Smoothed enrollment trend: ${roundedSmoothed} students`,
+    explain: `Based on recent growth: about ${roundedSmoothed} students`,
   };
 }
 
@@ -255,8 +255,7 @@ export function recalculateForecasts(source: DashboardSource): RecalculateResult
   if (rates.usingDefaults) {
     notices.push({
       type: "cold_start",
-      message:
-        "Using default admissions assumptions — not enough admissions history yet.",
+      message: "cold_start admissions",
     });
   }
 
@@ -267,8 +266,7 @@ export function recalculateForecasts(source: DashboardSource): RecalculateResult
   if (actualCount < MIN_ACTUAL_MONTHS_FOR_SMOOTHING) {
     notices.push({
       type: "cold_start",
-      message:
-        "Using opening enrollment plan — fewer than 2 closed months of actual enrollment.",
+      message: "cold_start enrollment",
     });
   }
 
@@ -304,7 +302,7 @@ export function recalculateForecasts(source: DashboardSource): RecalculateResult
                 month.monthKey,
                 month.students.value * tuitionRate,
                 "actual",
-                `${month.students.value} students × $${tuitionRate.toFixed(2)} per student`,
+                `${month.students.value} students × $${tuitionRate.toFixed(2)} average tuition collected`,
               ),
       });
       continue;
@@ -336,7 +334,7 @@ export function recalculateForecasts(source: DashboardSource): RecalculateResult
           month.monthKey,
           enrollment * tuitionRate,
           "forecast",
-          `${enrollment} students × $${tuitionRate.toFixed(2)} per student`,
+          `${enrollment} students × $${tuitionRate.toFixed(2)} average tuition collected`,
         ),
         totalExpenses: expenses,
       });
@@ -356,7 +354,7 @@ export function recalculateForecasts(source: DashboardSource): RecalculateResult
 
     if (actualCount < MIN_ACTUAL_MONTHS_FOR_SMOOTHING) {
       enrollmentValue = openingPlan;
-      enrollmentExplain = `Opening plan default: ${openingPlan} students`;
+      enrollmentExplain = `From your opening plan: ${openingPlan} students`;
     } else {
       const admissionsRecord = synced.admissionsByMonth.find(
         (record) => record.month === month.monthKey,
@@ -401,7 +399,7 @@ export function recalculateForecasts(source: DashboardSource): RecalculateResult
         month.monthKey,
         enrollmentValue * tuitionRate,
         "forecast",
-        `${enrollmentValue} students × $${tuitionRate.toFixed(2)} per student`,
+        `${enrollmentValue} students × $${tuitionRate.toFixed(2)} average tuition collected`,
       ),
       totalExpenses: expenses,
     });

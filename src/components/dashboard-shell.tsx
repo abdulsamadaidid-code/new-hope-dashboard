@@ -8,6 +8,7 @@ import { EnrollmentSection } from "@/components/enrollment-section";
 import { FinancialSection } from "@/components/financial-section";
 import { ForecastSection } from "@/components/forecast-section";
 import { KpiCards } from "@/components/kpi-cards";
+import { copy, friendlyNotice } from "@/lib/copy";
 import { formatGeneratedAt } from "@/lib/format";
 import type { DashboardData, DashboardSource, ForecastNotice } from "@/lib/types";
 
@@ -45,7 +46,7 @@ export function DashboardShell({
       };
 
       if (!response.ok || !payload.source || !payload.data) {
-        throw new Error(payload.error ?? "Failed to save dashboard data.");
+        throw new Error(payload.error ?? copy.errors.saveFailed);
       }
 
       setSource(payload.source);
@@ -53,9 +54,7 @@ export function DashboardShell({
       setNotices(payload.notices ?? payload.data.forecastNotices ?? []);
     } catch (saveError) {
       setError(
-        saveError instanceof Error
-          ? saveError.message
-          : "Failed to save dashboard data.",
+        saveError instanceof Error ? saveError.message : copy.errors.saveFailed,
       );
     } finally {
       setSaving(false);
@@ -63,17 +62,19 @@ export function DashboardShell({
   }, []);
 
   return (
-    <main className="dashboard-page mx-auto max-w-7xl flex-1 px-4 py-6 print:max-w-none print:px-2 print:py-2">
-      <header className="mb-5 border-b border-slate-200 pb-4 text-center print:mb-3 print:pb-2">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 print:text-xl">
-          New Hope Dashboard
+    <main className="dashboard-page mx-auto max-w-7xl flex-1 px-4 py-6 print:max-w-none print:px-2 print:py-2 sm:px-6">
+      <header className="mb-6 border-b border-slate-200 pb-5 text-center print:mb-3 print:pb-2">
+        <p className="text-sm font-medium text-blue-800">{copy.site.subtitle}</p>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900 print:text-xl">
+          {copy.site.title}
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          {data.currentMonth.label} · Updated {formatGeneratedAt(data.generatedAt)}
+        <p className="mt-2 text-sm text-slate-500">
+          {copy.site.viewing(data.currentMonth.label)} ·{" "}
+          {copy.site.lastUpdated(formatGeneratedAt(data.generatedAt))}
         </p>
       </header>
 
-      <div className="space-y-4 print:space-y-3">
+      <div className="space-y-5 print:space-y-3">
         <DashboardEditor source={source} onSave={handleSave} saving={saving} />
 
         {notices.length > 0 ? (
@@ -81,29 +82,29 @@ export function DashboardShell({
             {notices.map((notice) => (
               <p
                 key={notice.message}
-                className={`rounded-md border px-3 py-2 text-sm ${
+                className={`rounded-lg border px-4 py-3 text-sm leading-relaxed ${
                   notice.type === "cold_start"
-                    ? "border-amber-200 bg-amber-50 text-amber-900"
+                    ? "border-amber-200 bg-amber-50 text-amber-950"
                     : notice.type === "override_skipped"
-                      ? "border-blue-200 bg-blue-50 text-blue-900"
+                      ? "border-blue-200 bg-blue-50 text-blue-950"
                       : "border-slate-200 bg-slate-50 text-slate-700"
                 }`}
               >
-                {notice.message}
+                {friendlyNotice(notice)}
               </p>
             ))}
           </div>
         ) : null}
 
         {error ? (
-          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 print:hidden">
+          <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 print:hidden">
             {error}
           </p>
         ) : null}
 
         <KpiCards kpis={data.kpis} />
 
-        <div className="grid gap-4 lg:grid-cols-2 print:grid-cols-2 print:gap-3">
+        <div className="grid gap-5 lg:grid-cols-2 print:grid-cols-2 print:gap-3">
           <EnrollmentSection enrollment={data.enrollment} />
           <FinancialSection financial={data.financial} />
         </div>
@@ -113,7 +114,7 @@ export function DashboardShell({
           currentMonthIndex={data.currentMonth.index}
         />
 
-        <div className="grid gap-4 lg:grid-cols-2 print:grid-cols-2 print:gap-3">
+        <div className="grid gap-5 lg:grid-cols-2 print:grid-cols-2 print:gap-3">
           <AdmissionsTracker admissions={data.admissions} />
           <ActionItems items={data.actionItems} />
         </div>

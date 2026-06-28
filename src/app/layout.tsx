@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "New Hope Dashboard",
+  title: "New Hope School Dashboard",
   description:
-    "Management dashboard for New Hope School enrollment and financial health.",
+    "A simple dashboard for New Hope School leaders to track enrollment, finances, and what to focus on next.",
 };
 
 export default function RootLayout({
@@ -28,7 +28,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-slate-100 text-slate-900 print:bg-white">
+      <body className="min-h-full flex flex-col bg-[#f8fafc] text-slate-900 print:bg-white">
         {children}
       </body>
     </html>

@@ -9,14 +9,16 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { SectionCard } from "@/components/section-card";
+import { copy } from "@/lib/copy";
 import { formatCurrency } from "@/lib/format";
 import type { DashboardData } from "@/lib/types";
 
 const rows = [
-  { key: "totalMonthlyIncome", label: "Total Monthly Income" },
-  { key: "totalMonthlyExpenses", label: "Total Monthly Expenses" },
-  { key: "netCashFlow", label: "Net Cash Flow" },
-  { key: "endingCashBalance", label: "Ending Cash Balance" },
+  { key: "totalMonthlyIncome", label: copy.financial.income },
+  { key: "totalMonthlyExpenses", label: copy.financial.expenses },
+  { key: "netCashFlow", label: copy.financial.netCashFlow },
+  { key: "endingCashBalance", label: copy.financial.cashBalance },
 ] as const;
 
 export function FinancialSection({
@@ -24,13 +26,18 @@ export function FinancialSection({
 }: {
   financial: DashboardData["financial"];
 }) {
+  const chartData = financial.incomeVsExpenses.map((item) => ({
+    ...item,
+    name: item.name === "Income" ? copy.chart.income : copy.chart.expenses,
+  }));
+
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm print:shadow-none">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700">
-        Financial Health
-      </h2>
-      <div className="mt-3 grid gap-4 lg:grid-cols-[1fr_1.1fr]">
-        <dl className="space-y-2 text-sm">
+    <SectionCard
+      title={copy.sections.financial}
+      hint={copy.sections.financialHint}
+    >
+      <div className="grid gap-4 lg:grid-cols-[1fr_1.1fr]">
+        <dl className="space-y-3 text-sm">
           {rows.map(({ key, label }) => (
             <div
               key={key}
@@ -45,7 +52,7 @@ export function FinancialSection({
         </dl>
         <div className="h-44 print:h-36">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={financial.incomeVsExpenses}>
+            <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} width={48} />
@@ -55,6 +62,6 @@ export function FinancialSection({
           </ResponsiveContainer>
         </div>
       </div>
-    </section>
+    </SectionCard>
   );
 }

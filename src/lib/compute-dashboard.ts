@@ -1,3 +1,4 @@
+import { copy } from "./copy";
 import {
   computeConversionRates,
   isLegacyForecastMonth,
@@ -21,8 +22,8 @@ function breakEvenStudents(source: DashboardSource): string {
   const fixedExpenses = current?.totalExpenses.value ?? 0;
   const tuitionPerStudent = averageTuition * collectionRate;
 
-  if (fixedExpenses <= 0) return "Enter expense assumptions";
-  if (tuitionPerStudent <= 0) return "Enter tuition assumptions";
+  if (fixedExpenses <= 0) return "Add your monthly costs first";
+  if (tuitionPerStudent <= 0) return "Add tuition settings first";
 
   const needed = Math.ceil(
     Math.max(0, fixedExpenses - monthlyOwnerFunding) / tuitionPerStudent,
@@ -44,16 +45,16 @@ function buildActionItems(
   if (kpis.totalStudents < totalTarget) {
     items.push({
       status: "warning",
-      label: "Enrollment below target",
-      action: "Increase admissions and marketing efforts",
+      label: copy.actions.enrollmentBelowTarget.label,
+      action: copy.actions.enrollmentBelowTarget.action,
     });
   }
 
   if (financial.totalMonthlyExpenses > financial.totalMonthlyIncome) {
     items.push({
       status: "critical",
-      label: "Expenses exceed income",
-      action: "Review discretionary spending",
+      label: copy.actions.expensesExceedIncome.label,
+      action: copy.actions.expensesExceedIncome.action,
     });
   }
 
@@ -65,8 +66,8 @@ function buildActionItems(
   if (payrollRatio > 0.5 && assumptions.totalMonthlySalaries > 0) {
     items.push({
       status: "warning",
-      label: "Payroll exceeds target ratio",
-      action: "Delay additional hiring",
+      label: copy.actions.payrollHigh.label,
+      action: copy.actions.payrollHigh.action,
     });
   }
 
@@ -76,8 +77,8 @@ function buildActionItems(
   ) {
     items.push({
       status: "critical",
-      label: "Cash balance below one month's expenses",
-      action: "Implement cash conservation measures",
+      label: copy.actions.cashLow.label,
+      action: copy.actions.cashLow.action,
     });
   }
 
@@ -96,8 +97,8 @@ function buildActionItems(
   if (maxBelowTargetStreak >= 2) {
     items.push({
       status: "warning",
-      label: "Forecast enrollment trending below target",
-      action: "Increase admissions and marketing efforts",
+      label: copy.actions.forecastEnrollmentLow.label,
+      action: copy.actions.forecastEnrollmentLow.action,
     });
   }
 
@@ -105,8 +106,8 @@ function buildActionItems(
   if (negativeCashMonth) {
     items.push({
       status: "critical",
-      label: "Forecast cash balance may go negative",
-      action: `Implement cash conservation measures now (${negativeCashMonth.label})`,
+      label: copy.actions.forecastCashNegative.label,
+      action: `${copy.actions.forecastCashNegative.action} (${negativeCashMonth.label})`,
     });
   }
 
@@ -127,8 +128,8 @@ function buildActionItems(
     if (expenseGrowth > incomeGrowth + 0.05) {
       items.push({
         status: "warning",
-        label: "Forecast expenses outpacing revenue growth",
-        action: "Review variable cost assumptions",
+        label: copy.actions.forecastExpensesHigh.label,
+        action: copy.actions.forecastExpensesHigh.action,
       });
     }
   }
@@ -136,8 +137,8 @@ function buildActionItems(
   if (items.length === 0) {
     items.push({
       status: "good",
-      label: "Financial targets on track",
-      action: "Maintain current strategy",
+      label: copy.actions.onTrack.label,
+      action: copy.actions.onTrack.action,
     });
   }
 

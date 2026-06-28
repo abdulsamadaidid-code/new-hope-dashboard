@@ -10,6 +10,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { SectionCard } from "@/components/section-card";
+import { copy } from "@/lib/copy";
 import { formatNumber } from "@/lib/format";
 import type { DashboardData } from "@/lib/types";
 
@@ -27,27 +29,27 @@ export function EnrollmentSection({
       : upcomingData;
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm print:shadow-none">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700">
-        Enrollment
-      </h2>
-      <div className="mt-3 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+    <SectionCard
+      title={copy.sections.enrollment}
+      hint={copy.sections.enrollmentHint}
+    >
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-left text-slate-500">
               <th className="pb-2 font-medium">Grade</th>
-              <th className="pb-2 font-medium">Current</th>
-              <th className="pb-2 font-medium">Target</th>
+              <th className="pb-2 font-medium">{copy.editor.fields.current}</th>
+              <th className="pb-2 font-medium">{copy.editor.fields.target}</th>
             </tr>
           </thead>
           <tbody>
             {enrollment.byGrade.map((row) => (
               <tr key={row.grade} className="border-b border-slate-100">
-                <td className="py-2 text-slate-800">{row.grade}</td>
-                <td className="py-2 font-medium text-slate-900">
+                <td className="py-2.5 text-slate-800">{row.grade}</td>
+                <td className="py-2.5 font-medium text-slate-900">
                   {formatNumber(row.current)}
                 </td>
-                <td className="py-2 text-slate-700">
+                <td className="py-2.5 text-slate-700">
                   {formatNumber(row.target)}
                 </td>
               </tr>
@@ -68,7 +70,7 @@ export function EnrollmentSection({
               <Tooltip />
               <Legend />
               <Line
-                name="Actual"
+                name={copy.chart.actualStudents}
                 data={actualData}
                 type="monotone"
                 dataKey="students"
@@ -77,7 +79,7 @@ export function EnrollmentSection({
                 dot={false}
               />
               <Line
-                name="Forecast"
+                name={copy.chart.forecastStudents}
                 data={upcomingLine}
                 type="monotone"
                 dataKey="students"
@@ -90,6 +92,6 @@ export function EnrollmentSection({
           </ResponsiveContainer>
         </div>
       </div>
-    </section>
+    </SectionCard>
   );
 }
